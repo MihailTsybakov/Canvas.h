@@ -29,5 +29,6 @@ Canvas - два конструктора:
   - canvas.plot(double* var_values, double* func_values, int sample_count) - рисует график по var_values - переменной и func_values - соответствующим
   значениям функции. sample_count - число точек. (Перед построением графика меняет масштаб на 800х800 и очищает холст).
   - canvas.scatterplot(double* var_values, double* func_values, int sample_count) - то же самое, но точечный график.
+  - canvas.help() - выводит документацию в консоль.
   
   P.S. Методы построения графиков будут улучшены и расширены в функционале
