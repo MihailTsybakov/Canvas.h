@@ -13,7 +13,7 @@ Canvas - два конструктора:
   - canvas.put_pixel(int x, int y, int R, int G, int B) - закрасить пиксель по координатам (х, у) цветом RGB
   - canvas.get_pixel(int x, int y) - возвращает обьект класса Pixel - содержит координаты и цвет
   - canvas.fill_canvas(int R, int G, int B) - закрашивает весь холст цветом RGB
-  - canvas.fill_area(int x, int y, int R, int G, int B, int R_stop, int G_stop, int B_stop) - закрашивает область,
+  - canvas.fill_area(int x, int y, int R, int G, int B, int R_stop = -1, int G_stop = -1, int B_stop = -1) - закрашивает область,
   содержащую точку (х, у) цветом RGB - стандартная заливка. Если переданы аргументы R_stop, ..., B_stop - закрашиваемая область 
   ограничена не изначальным цветом пикселя (х,у), а цветом R_stop, ..., B_stop
   - canvas.draw_segment(int x1, int y1, int x2, int y2, int R, int G, int B) - рисует отрезок из (x1, y1) в (x2, y2) цвета RGB 
