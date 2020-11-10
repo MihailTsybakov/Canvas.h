@@ -357,6 +357,19 @@ public:
         width = image.get_width();
         height = image.get_height();
     }
+    Canvas& operator=(const Canvas& arg)
+    {
+        width = arg.width;
+        height = arg.height;
+        image = arg.image;
+        return *this;
+    }
+    Canvas(const Canvas& arg)
+    {
+        width = arg.width;
+        height = arg.height;
+        image = arg.image;
+    }
     int save(string filename)
     {
         return image.save(filename);
@@ -368,6 +381,14 @@ public:
     Pixel get_pixel(int x, int y)
     {
         return image.get_pixel(x, y);
+    }
+    int get_width()
+    {
+        return width;
+    }
+    int get_height()
+    {
+        return height;
     }
     int fill_canvas(int R, int G, int B) // Fills all canvas
     {
