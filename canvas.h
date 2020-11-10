@@ -107,6 +107,7 @@ public:
         this->Xpix_per_m = arg.Xpix_per_m;
         this->Ypix_per_m = arg.Ypix_per_m;
         this->pixlen = arg.pixlen;
+        delete[] pixels;
         pixels = new uint8_t[pixlen];
         for (int i = 0; i < pixlen; i++)
         {
@@ -1529,6 +1530,103 @@ public:
         }
         return 1;
     }
+    Canvas copy_fragment(int x1, int y1, int x2, int y2)
+    {
+        if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 ||
+            x1 >= width || y1 >= height || x2 >= width || y2 >= height)
+        {
+            cout << "Error: incorrect location of area to copy." << endl;
+            Canvas err(100, 100);
+            return err;
+        }
+        if (x1 > x2)
+        {
+            int tmp;
+            tmp = x1;
+            x1 = x2;
+            x2 = tmp;
+            tmp = y1;
+            y1 = y2;
+            y2 = tmp;
+        }
+        Canvas temp(x2 - x1 + 1, max(y2,y1) - min(y2, y1) + 1);
+        for (int x = 0; x <= x2-x1; x++)
+        {
+            for (int y = 0; y <= max(y1, y2) - min(y1,y2);)
+            {
+                Pixel tmp = get_pixel(x1 + x, y1 + y);
+                temp.put_pixel(x, y, tmp.R, tmp.G, tmp.B);
+                if (y2 > y1)
+                {
+                    y++;
+                }
+                if (y2 < y1)
+                {
+                    y--;
+                }
+            }
+        }
+        return temp;
+    }
+    int insert_fragment(int x, int y, string filename)
+    {
+        if (filename.find(".bmp") == string::npos)
+        {
+            cout << "Error: incorrect file format passed in insertion function. " << endl;
+            return 0;
+        }
+        if (x < 0 || y < 0 || x >= width || y >= height)
+        {
+            cout << "Error: incorrect insertion point." << endl;
+            return 0;
+        }
+        Canvas insertion(filename);
+        insertion.save("DEBUG_INSERT.bmp");
+        if (insertion.width + x > width || insertion.height + y > height)
+        {
+            cout << "Error: cannot insert such fragment - its out of picture bounds." << endl;
+            return 0;
+        }
+        for (int x_ = 0; x_ < insertion.width; x_ ++)
+        {
+            for (int y_ = 0; y_ < insertion.height; y_ ++)
+            {
+                Pixel ins_pix = insertion.get_pixel(x_, y_);
+                if (!put_pixel(x + x_, y + y_, ins_pix.R, ins_pix.G, ins_pix.B))
+                {
+                    cout << "Error occured while tried to insert fragment." << filename << endl;
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
+    int insert_fragment(int x, int y, Canvas insertion)
+    {
+        if (x < 0 || y < 0 || x >= width || y >= height)
+        {
+            cout << "Error: incorrect insertion point." << endl;
+            return 0;
+        }
+        if (insertion.width + x > width || insertion.height + y > height)
+        {
+            cout << "Error: cannot insert such fragment - its out of picture bounds." << endl;
+            return 0;
+        }
+        for (int x_ = 0; x_ < insertion.width; x_++)
+        {
+            for (int y_ = 0; y_ < insertion.height; y_++)
+            {
+                Pixel ins_pix = insertion.get_pixel(x_, y_);
+                if (!put_pixel(x + x_, y + y_, ins_pix.R, ins_pix.G, ins_pix.B))
+                {
+                    cout << "Error occured while tried to insert fragment." << endl;
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
     void help() const
     {
         cout << "Constructors: " << endl;
@@ -1555,6 +1653,9 @@ public:
         cout << "   with variable values and func_values is an array with corresponding function values. Sample_count is number of dots ( = length of arrays). " << endl;
         cout << ">- canvas.scatterplot(double* var_values, double* func_values, int sample_counts) - works the same way as canvas.plot, draws a scatter plot " << endl;
         cout << "   from values in var_values and corresponding function values in func_values. " << endl;
+        cout << ">- canvas.copy_fragment(int x1, int y1, int x2, int y2) - returns canvas which is rectangular fragment of original from x1,y1 to x2,y2" << endl;
+        cout << ">- canvas.insert_fragment(int x, int y, Canvas fragment) - inserts a fragment in current canvas, x,y is upper left point of fragment start" << endl;
+        cout << ">- canvas.insert_fragment(int x, int y, string filename) - -//-, but fragment is taken from file `filename`. " << endl;
     }
 
 };
