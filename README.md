@@ -32,7 +32,8 @@ Canvas - два конструктора:
   - canvas.scatterplot(double* var_values, double* func_values, int sample_count) - то же самое, но точечный график.
   - canvas.copy_fragment(int x1, int y1, int x2, int y2) - вырезает прямоугольный фрагмент от (x1, y1) до (x2, y2) и возвращает его в качестве
   объекта Canvas.
-  - canvas.insert_fragment(int x, int y, Canvas fragment) - вставляет в текущий холст фрагмент fragment.
+  - canvas.insert_fragment(int x, int y, Canvas fragment) - вставляет в текущий холст фрагмент fragment, (x,y) - кординаты левой верхней вершины вставляемого
+  прямоугольного фрагмента.
   - canvas.insert_fragment(int x, int y, string filename) - делает то же самое, но загружает фрагмент из файла filename (тоже бмп картинка). 
   - canvas.help() - выводит документацию в консоль.
   
