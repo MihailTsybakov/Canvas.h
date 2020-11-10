@@ -84,6 +84,31 @@ public:
             cout << "Error occured while tried to load image. " << endl;
         }
     }
+    BMP_Image(const BMP_Image& arg)
+    {
+        this->bits_per_pixel = arg.bits_per_pixel;
+        this->bytes_shift = arg.bytes_shift;
+        this->colors_important = arg.colors_important;
+        this->colors_used = arg.colors_used;
+        this->compression = arg.compression;
+        this->file_size = arg.file_size;
+        this->header_size = arg.header_size;
+        this->height = arg.height;
+        this->width = arg.width;
+        this->image_size = arg.image_size;
+        this->signature = arg.signature;
+        this->reserved_1 = arg.reserved_1;
+        this->reserved_2 = arg.reserved_2;
+        this->planes = arg.planes;
+        this->Xpix_per_m = arg.Xpix_per_m;
+        this->Ypix_per_m = arg.Ypix_per_m;
+        this->pixlen = arg.pixlen;
+        pixels = new uint8_t[pixlen];
+        for (int i = 0; i < pixlen; i++)
+        {
+            pixels[i] = arg.pixels[i];
+        }
+    }
     ~BMP_Image()
     {
         delete[] pixels;
@@ -358,6 +383,7 @@ public:
         width = image.get_width();
         height = image.get_height();
     }
+    ~Canvas(){}
     Canvas& operator=(const Canvas& arg)
     {
         width = arg.width;
