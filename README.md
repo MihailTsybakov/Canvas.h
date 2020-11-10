@@ -29,6 +29,10 @@ Canvas - два конструктора:
   - canvas.plot(double* var_values, double* func_values, int sample_count) - рисует график по var_values - переменной и func_values - соответствующим
   значениям функции. sample_count - число точек. (Перед построением графика меняет масштаб на 800х800 и очищает холст).
   - canvas.scatterplot(double* var_values, double* func_values, int sample_count) - то же самое, но точечный график.
+  - canvas.copy_fragment(int x1, int y1, int x2, int y2) - вырезает прямоугольный фрагмент от (x1, y1) до (x2, y2) и возвращает его в качестве
+  объекта Canvas.
+  - canvas.insert_fragment(int x, int y, Canvas fragment) - вставляет в текущий холст фрагмент fragment.
+  - canvas.insert_fragment(int x, int y, string filename) - делает то же самое, но загружает фрагмент из файла filename (тоже бмп картинка). 
   - canvas.help() - выводит документацию в консоль.
   
   P.S. Методы построения графиков будут улучшены и расширены в функционале
