@@ -34,7 +34,8 @@ Canvas - два конструктора:
   объекта Canvas.
   - canvas.insert_fragment(int x, int y, Canvas fragment) - вставляет в текущий холст фрагмент fragment, (x,y) - кординаты левой верхней вершины вставляемого
   прямоугольного фрагмента.
-  - canvas.insert_fragment(int x, int y, string filename) - делает то же самое, но загружает фрагмент из файла filename (тоже бмп картинка). 
+  - canvas.insert_fragment(int x, int y, string filename) - делает то же самое, но загружает фрагмент из файла filename (тоже бмп картинка).
+  - canvas.to_black_n_white() - переводит холст в чёрно-белый формат (средн. арифм. RGB цвета)ю
   - canvas.help() - выводит документацию в консоль.
   
   P.S. Методы построения графиков будут улучшены и расширены в функционале
