@@ -1670,6 +1670,36 @@ public:
         }
         return 1;
     }
+    int cut(int x_margin, int y_margin)
+    {
+        if (x_margin < 0 || y_margin < 0 || (x_margin == 0 && y_margin == 0))
+        {
+            cout << "Error: incorrect margin parameters passed." << endl;
+            return 0;
+        }
+        if (2 * x_margin >= width || 2 * y_margin >= height)
+        {
+            cout << "Error: incorrect margin parameters passed." << endl;
+            return 0;
+        }
+        Canvas result(width - 2*x_margin, height - 2*y_margin);
+        for (int x = x_margin; x < width - x_margin; x++)
+        {
+            for (int y = y_margin; y < height - y_margin; y++)
+            {
+                Pixel tmp = get_pixel(x, y);
+                if (!result.put_pixel(x - x_margin, y - y_margin, tmp.R, tmp.G, tmp.B))
+                {
+                    cout << "Error occured while tried to cut canvas." << endl;
+                    return 0;
+                }
+            }
+        }
+        this->width = result.width;
+        this->height = result.height;
+        this->image = result.image;
+        return 1;
+    }
     void help() const
     {
         cout << "Constructors: " << endl;
