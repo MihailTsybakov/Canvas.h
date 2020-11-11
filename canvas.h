@@ -1653,6 +1653,23 @@ public:
         }
         return 1;
     }
+    int to_black_n_white()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Pixel curr_pix = get_pixel(x,y);
+                int mean_color = static_cast<int>((static_cast<double>(curr_pix.R) + static_cast<double>(curr_pix.G) + static_cast<double>(curr_pix.B))/3);
+                if (!put_pixel(x,y, mean_color, mean_color, mean_color))
+                {
+                    cout << "Unexpected error occured while tried to turn picture into black-and-white format." << endl;
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
     void help() const
     {
         cout << "Constructors: " << endl;
