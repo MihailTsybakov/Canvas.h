@@ -1,3 +1,6 @@
+#ifndef CANVAS
+#define CANVAS
+
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -5,7 +8,6 @@
 #include <vector>
 #include <stdlib.h>
 #include <cmath>
-#pragma once
 using namespace std;
 
 class Pixel
@@ -1732,3 +1734,5 @@ public:
     }
 
 };
+
+#endif //CANVAS
