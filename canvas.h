@@ -8,7 +8,58 @@
 #include <vector>
 #include <stdlib.h>
 #include <cmath>
+#include <exception>
+
 using namespace std;
+
+/* ======== Exceptions ======== */
+
+class plot_error : public exception
+{
+private:
+    string error_msg;
+public:
+    plot_error(string error_msg)
+    {
+        this->error_msg = error_msg;
+    }
+    const char* what() const noexcept override
+    {
+        return error_msg.c_str();
+    }
+};
+
+class draw_error : public exception
+{
+private:
+    string error_msg;
+public:
+    draw_error(string error_msg)
+    {
+        this->error_msg = error_msg;
+    }
+    const char* what() const noexcept override
+    {
+        return error_msg.c_str();
+    }
+};
+
+class inner_error : public exception
+{
+private:
+    string error_msg;
+public:
+    inner_error(string error_msg)
+    {
+        this->error_msg = error_msg;
+    }
+    const char* what() const noexcept override
+    {
+        return error_msg.c_str();
+    }
+};
+
+/* ======== ========== ======== */
 
 class Pixel
 {
@@ -77,14 +128,25 @@ private:
     uint8_t* pixels; // Pixels by bytes
     int pixlen = 0;
 public:
-    BMP_Image(){}
+    BMP_Image()
+    {
+        width = 0;
+        height = 0;
+        file_size = 0;
+        pixels = nullptr;
+    }
     BMP_Image(string filename)
     {
         int load_status = load(filename);
         if (!load_status)
         {
             cout << "Error occured while tried to load image. " << endl;
+            exit(-1);
         }
+    }
+    ~BMP_Image()
+    {
+        delete[] pixels;
     }
     BMP_Image(const BMP_Image& arg)
     {
@@ -110,10 +172,6 @@ public:
         {
             pixels[i] = arg.pixels[i];
         }
-    }
-    ~BMP_Image()
-    {
-        delete[] pixels;
     }
     BMP_Image& operator=(const BMP_Image& arg)
     {
@@ -146,15 +204,13 @@ public:
     {
         if (filename.find(".bmp") == string::npos)
         {
-            cout << "Error: unsupported file format. " << endl;
-            return 0;
+            throw inner_error("Error: unsupported file format.");
         }
         ifstream source_file;
-        source_file.open(filename, ios::binary);
+        source_file.open(filename, ios::binary|ios::in);
         if (!source_file.is_open())
         {
-            cout << "Error occured while tried to open image. " << endl;
-            return 0;
+            throw inner_error("Error occured while tried to open image.");
         }
         // Reading header
         source_file.read((char*)&signature, sizeof(signature));
@@ -174,6 +230,7 @@ public:
         source_file.read((char*)&Ypix_per_m, sizeof(Ypix_per_m));
         source_file.read((char*)&colors_used, sizeof(colors_used));
         source_file.read((char*)&colors_important, sizeof(colors_important));
+
         // Reading pixels
         if (image_size == 0)
         {
@@ -194,8 +251,8 @@ public:
             {
                 new_stride++;
             }
-            uint8_t* padding = new uint8_t[new_stride - row_stride];
-            int row = 0, pos = 0;
+            //uint8_t* padding = new uint8_t[new_stride - row_stride];
+            int pos = 0; // int row = 0;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < row_stride; x++)
@@ -219,15 +276,13 @@ public:
     {
         if (filename.find(".bmp") == string::npos)
         {
-            cout << "Error: cannot save in such format. " << endl;
-            return 0;
+            throw inner_error("Error: unsupported file format to save.");
         }
         ofstream output_file;
-        output_file.open(filename, ios::binary);
+        output_file.open(filename, ios::binary|ios::out);
         if (!output_file.is_open())
         {
-            cout << "Error occured while tried to create *.bmp file. " << endl;
-            return 0;
+            throw inner_error("Error occured while tried to create *.bmp file.");
         }
         // Writing header
         output_file.write((char*)&signature, sizeof(signature));
@@ -283,13 +338,13 @@ public:
     {
         if (image_width <= 0 || image_height <= 0)
         {
-            cout << "Error: incorrect image size. " << endl;
-            exit(-1);
+            throw inner_error("Error: incorrect image size.");
         }
         width = static_cast<uint32_t>(image_width);
         height = static_cast<uint32_t>(image_height);
-        image_size = static_cast<uint32_t>(image_size = ((width * (bits_per_pixel / 8) + 3) & ~3) * height);
-        file_size = 54 + image_size;
+        /*image_size = static_cast<uint32_t>*/
+        image_size = ((width * (bits_per_pixel / 8) + 3) & ~3) * height;
+        file_size = 54 + image_size; /// ------- ! -------
         pixlen = width * height * bits_per_pixel / 8;
         pixels = new uint8_t[pixlen];
         // Filling with zeros
@@ -304,8 +359,8 @@ public:
         int row_stride = width * bits_per_pixel / 8;
         if (x < 0 || y < 0 || 3*x + y*row_stride >= pixlen)
         {
-            cout << "Warning: incorrect pixel position. Returning empty pixel. " << endl;
-            return Pixel(0, 0, 0, 0, 0);
+            throw inner_error("Error: incorrect pixel position.");
+            //return Pixel(0, 0, 0, 0, 0);
         }
         int B = pixels[(height - y - 1)*row_stride + 3*x];
         int G = pixels[(height - y - 1)*row_stride + 3*x + 1];
@@ -317,13 +372,11 @@ public:
         int row_stride = width * bits_per_pixel / 8;
         if (x < 0 || y < 0 || 3*x + y*row_stride >= pixlen)
         {
-            cout << "Error: incorrect pixel position. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect pixel position.");
         }
         if (R < 0 || G < 0 || B < 0 || R > 255 || G > 255 || B > 255)
         {
-            cout << "Error: incorrect color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         pixels[(height - y - 1)*row_stride + 3*x] = B;
         pixels[(height - y - 1)*row_stride + 3*x + 1] = G;
@@ -370,7 +423,14 @@ private:
     BMP_Image image;
     int width, height;
 public:
-    Canvas() = delete;
+    Canvas()
+    {
+        width = 0;
+        height = 0;
+        BMP_Image img(5,5);
+        image = img;
+    }
+    ~Canvas(){}
     Canvas(int x, int y)
     {
         BMP_Image tmp_image(x, y);
@@ -385,14 +445,6 @@ public:
         width = image.get_width();
         height = image.get_height();
     }
-    ~Canvas(){}
-    Canvas& operator=(const Canvas& arg)
-    {
-        width = arg.width;
-        height = arg.height;
-        image = arg.image;
-        return *this;
-    }
     Canvas(const Canvas& arg)
     {
         width = arg.width;
@@ -402,6 +454,13 @@ public:
     int save(string filename)
     {
         return image.save(filename);
+    }
+    Canvas& operator=(const Canvas& arg)
+    {
+        width = arg.width;
+        height = arg.height;
+        image = arg.image;
+        return *this;
     }
     int put_pixel(int x, int y, int R, int G, int B)
     {
@@ -423,8 +482,7 @@ public:
     {
         if (R < 0 || G < 0 || B < 0 || R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         for (int y = 0; y < height; y++)
         {
@@ -432,8 +490,7 @@ public:
             {
                 if (!put_pixel(x, y, R, G, B))
                 {
-                    cout << "Error occured while tried to fill canvas. " << endl;
-                    return 0;
+                    throw draw_error("Error occured while tried to fill canvas.");
                 }
             }
         }
@@ -443,28 +500,24 @@ public:
     {
         if (x < 0 || y < 0 || x >= width || y >= height)
         {
-            cout << "Error: incorrect pixel position. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect pixel position.");
         }
         if (R < 0 || G < 0 || B < 0 || R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         if (R_stop != -1)
         {
             if (G_stop == -1 || B_stop == -1)
             {
-                cout << "Error: 3 stop color params should be passed. " << endl;
-                return 0;
+                throw draw_error("Error: not enough color params passed.");
             }
             else
             {
                 if (R_stop < 0 || G_stop < 0 || B_stop < 0
                     || R_stop >= 256 || G_stop >= 256 || B_stop >= 256)
                 {
-                    cout << "Error: incorrect stop color params. " << endl;
-                    return 0;
+                    throw draw_error("Error: wrong stop color parameters.");
                 }
             }
         }
@@ -485,8 +538,7 @@ public:
             curr_neighbours.clear();
             if (last_painted_count > 10e6)
             {
-                cout << "Mem error" << endl;
-                exit(-2);
+                throw inner_error("Memory error in filling.");
             }
             for (int i = 0; i < last_painted_count; i++)
             {
@@ -730,13 +782,11 @@ public:
         if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0
             || x1 >= width || y1 >= height || x2 >= width || y2 >= height)
         {
-            cout << "Error: incorrect segment verticies positions. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect vertex positions.");
         }
         if (R < 0 || G < 0 || B < 0 || R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         if (x1 == x2 && y1 == y2)
         {
@@ -788,7 +838,7 @@ public:
             else
             {
                 int x = x1;
-                int y = y1;
+//                int y = y1;
                 delta_error = static_cast<double>(delta_x + 1)/static_cast<double>(delta_y + 1);
                 for (int delta_y = 0; delta_y < max(y1, y2) - min(y1, y2); delta_y++)
                 {
@@ -812,19 +862,16 @@ public:
         if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 ||
             x1 >= width || y1 >= height || x2 >= width || y2 >= height)
         {
-            cout << "Error: incorrect segment verticies positions. (w =  " << w <<")"<< endl;
-            return 0;
+            throw draw_error("Error: incorrect vertex positions.");
         }
         if (R < 0 || G < 0 || B < 0 || R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         if (width <= 0 || x1 - w < 0 || x1 + w >= width || x2 - w < 0 || x2 + w >= width ||
             y1 - w < 0 || y1 + 2 >= height|| y2 - w < 0 || y2 + w >= height)
         {
-            cout << "Error: incorrect width parameter. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect width parameter.");
         }
         if (w == 1)
         {
@@ -839,8 +886,7 @@ public:
                 int draw_status = draw_segment(x1, y1 + y_plus, x2, y2 + y_plus, R,  G, B);
                 if (!draw_status)
                 {
-                    cout << "Error occured while tried to draw segment with width = " << w << endl;
-                    return 0;
+                    throw draw_error("Failed to draw segment.");
                 }
             }
         }
@@ -862,38 +908,33 @@ public:
     {
         if (x1 < 0 || x1 >= width || y1 < 0 || y1 >= height || x2 < 0 || x2 >= width || y2 < 0 || y2 >= height)
         {
-            cout << "Error: incorrect rectangle verticies positions. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect vertex positions.");
         }
         if (w != 1)
         {
             if (w <= 0 || x1 - w/2 < 0 || x1 + w/2 >= width || y1 - w/2 < 0 || y1 + w/2 >= height ||
                 x2 - w/2 < 0 || x2 + w/2 >= width || y2 - w/2 < 0 || y2 + w/2 >= height)
             {
-                cout << "Error: incorrect width parameter: rectangle goes out of the image border. " << endl;
-                return 0;
+                throw draw_error("Error: incorrect width parameter.");
             }
         }
         if (R_f != -1)
         {
             if (G_f == -1 || B_f == -1)
             {
-                cout << "Error: 3 fill color parameters should be passed. " << endl;
-                return 0;
+                throw draw_error("Error: not enough colors passed.");
             }
             else
             {
                 if (R_f < 0 || G_f < 0 || B_f < 0 || R_f >= 256 || G_f >= 256 || B_f >= 256)
                 {
-                    cout << "Error: incorrect RGB fill color parameters. " << endl;
-                    return 0;
+                    throw draw_error("Error: incorrect colot parameters.");
                 }
             }
         }
         if (R < 0 || G < 0 || B < 0 || R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB border color parameters. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         int x3 = x1 + max(x1, x2) - min(x1, x2);
         int y3 = y1;
@@ -906,8 +947,7 @@ public:
                 !draw_segment(x3 - i, y3 + i, x2 - i, y2 - i + 1, R, G, B) ||
                 !draw_segment(x4 + i, y4 - i, x2 - i, y2 - i, R, G, B))
             {
-                cout << "Error occured while tried to draw rectangle`s side. " << endl;
-                return 0;
+                throw draw_error("Failed to draw rectangle.");
             }
         }
         // Filling if needed
@@ -919,8 +959,7 @@ public:
                 {
                     if (!put_pixel(x, y, R_f, G_f, B_f))
                     {
-                        cout << "Error occured while tried to fill area inside rectangle. " << endl;
-                        return 0;
+                        throw draw_error("Error: failed to fill rectangle.");
                     }
                 }
             }
@@ -936,29 +975,25 @@ public:
             x2 >= width || y2 >= height ||
             x3 >= width || y3 >= height)
         {
-            cout << "Error: incorrect triangle verticies position. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect vertex position.");
         }
         if (R < 0 || G < 0 || B < 0 ||
             R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB color params. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         if (R_f != -1)
         {
             if (G_f == -1 || B_f == -1)
             {
-                cout << "Error: 3 RGB fill color params should be passed. " << endl;
-                return 0;
+                throw draw_error("Error: not enough colors passed.");
             }
             else
             {
                 if (R_f < 0 || G_f < 0 || B_f < 0 ||
                     R_f >= 256 || G_f >= 256 || B_f >= 256)
                 {
-                    cout << "Error: incorrect fill color params. " << endl;
-                    return 0;
+                    throw draw_error("Error: incorrect color parameters.");
                 }
             }
         }
@@ -966,8 +1001,7 @@ public:
             !draw_segment(x2, y2, x3, y3, R, G, B) ||
             !draw_segment(x1, y1, x3, y3, R, G, B))
         {
-            cout << "Error: cannot draw one of sides of triangle. " << endl;
-                return 0;
+            throw draw_error("Error: cannot draw triangle.");
         }
         // Filling if needed
         if (R_f != -1)
@@ -984,34 +1018,29 @@ public:
     {
         if (x < 0 || y < 0 || x >= width || y >= width)
         {
-            cout << "Error: incorrect circle center position. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect circle center position.");
         }
         if (Rad <= 0 || Rad >= width || Rad >= height)
         {
-            cout << "Error: incorrect circle radius parameter. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect radius parameter.");
         }
         if (R < 0 || G < 0 || B < 0 ||
             R >= 256 || G >= 256 || B >= 256)
         {
-            cout << "Error: incorrect RGB border color parameters." << endl;
-            return 0;
+            throw draw_error("Error: incorrect color parameters.");
         }
         if (R_f != -1)
         {
             if (G_f == -1 || B_f == -1)
             {
-                cout << "Error: 3 RGB fill color parameters should be passed. " << endl;
-                return 0;
+                throw draw_error("Error: not enough colors passed.");
             }
             else
             {
                 if (R_f < 0 || G_f < 0 || B_f < 0
                     || R_f >= 256 || G_f >= 256 || B_f >=256)
                 {
-                    cout << "Error: incorrect RGB fill color parameters. " << endl;
-                    return 0;
+                    throw draw_error("Error: incorrect color parameters.");
                 }
             }
         }
@@ -1026,8 +1055,7 @@ public:
                 !put_pixel(x - x_, y + y_, R, G, B) ||
                 !put_pixel(x - x_, y - y_, R, G, B))
             {
-                cout << "Error occured while tried to draw a circle. " << endl;
-                return 0;
+                throw draw_error("Error: failed to draw a circle.");
             }
             gap = 2*(delta + y_) - 1;
             if (delta < 0 && gap <= 0)
@@ -1059,8 +1087,7 @@ public:
         {
             if (!draw_circle(x, y, Rad - i, R, G, B))
             {
-                cout << "Error occured while tried to draw a circle (w = " << w << ") " << endl;
-                return 0;
+                throw draw_error("Error: failed to draw a circle.");
             }
         }
         // Filling if needed
@@ -1068,16 +1095,14 @@ public:
         {
             if (G_f == -1 || B_f == -1)
             {
-                cout << "Error: 3 RGB fill color parameters should be passed. " << endl;
-                return 0;
+                throw draw_error("Error: not enough colors passed.");
             }
             else
             {
                 if (R_f < 0 || G_f < 0 || B_f < 0 ||
                     R_f >=  256 || G_f >= 256 || B_f >= 256)
                 {
-                    cout << "Error: incorrect RGB fill color parameters. " << endl;
-                    return 0;
+                    throw draw_error("Error: incorrect colors parameters.");
                 }
                 fill_area(x, y, R_f, G_f, B_f, R, G, B);
             }
@@ -1094,13 +1119,11 @@ public:
         this->fill_canvas(255, 255, 255);
         if (var_values == nullptr || func_values == nullptr)
         {
-            cout << "Error: passed empty arrays." << endl;
-            return 0;
+            throw plot_error("Error: empty arrays passed.");
         }
         if (sample_count <= 0)
         {
-            cout << "Error: incorrect array length passed. " << endl;
-            return 0;
+            throw plot_error("Error: incorrect length encountered.");
         }
         // Sorting
         double* new_var = new double[sample_count];
@@ -1315,8 +1338,7 @@ public:
         {
             if (!draw_segment(x_appr[i], f_appr[i], x_appr[i+1], f_appr[i+1], 3, 27, 27, 137))
             {
-                cout << "Error occured while plotting. " << endl;
-                return 0;
+                throw plot_error("Error: failed to draw a plot.");
             }
         }
         return 1;
@@ -1331,13 +1353,11 @@ public:
         this->fill_canvas(255, 255, 255);
         if (var_values == nullptr || func_values == nullptr)
         {
-            cout << "Error: passed empty arrays." << endl;
-            return 0;
+            throw plot_error("Error: passed empty arrays.");
         }
         if (sample_count <= 0)
         {
-            cout << "Error: incorrect array length passed. " << endl;
-            return 0;
+            throw plot_error("Error: incorrect length encountered.");
         }
         // Sorting
         double* new_var = new double[sample_count];
@@ -1552,8 +1572,7 @@ public:
         {
             if (!draw_rectangle(x_appr[i] - 2, f_appr[i] - 2, x_appr[i] + 2, f_appr[i] + 2, 27, 27, 137, 1, 27, 27, 137))
             {
-                cout << "Error occured while plotting. " << endl;
-                return 0;
+                throw plot_error("Error: failed to draw a plot.");
             }
         }
         return 1;
@@ -1563,9 +1582,7 @@ public:
         if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 ||
             x1 >= width || y1 >= height || x2 >= width || y2 >= height)
         {
-            cout << "Error: incorrect location of area to copy." << endl;
-            Canvas err(100, 100);
-            return err;
+            throw draw_error("Error: incorrect area location.");
         }
         if (x1 > x2)
         {
@@ -1600,20 +1617,17 @@ public:
     {
         if (filename.find(".bmp") == string::npos)
         {
-            cout << "Error: incorrect file format passed in insertion function. " << endl;
-            return 0;
+            throw draw_error("Error: incorrect file format.");
         }
         if (x < 0 || y < 0 || x >= width || y >= height)
         {
-            cout << "Error: incorrect insertion point." << endl;
-            return 0;
+            throw draw_error("Error: incorrect insertion point.");
         }
         Canvas insertion(filename);
         insertion.save("DEBUG_INSERT.bmp");
         if (insertion.width + x > width || insertion.height + y > height)
         {
-            cout << "Error: cannot insert such fragment - its out of picture bounds." << endl;
-            return 0;
+            throw draw_error("Error: insertion fragment is out of picture bounds.");
         }
         for (int x_ = 0; x_ < insertion.width; x_ ++)
         {
@@ -1622,8 +1636,7 @@ public:
                 Pixel ins_pix = insertion.get_pixel(x_, y_);
                 if (!put_pixel(x + x_, y + y_, ins_pix.R, ins_pix.G, ins_pix.B))
                 {
-                    cout << "Error occured while tried to insert fragment." << filename << endl;
-                    return 0;
+                    throw draw_error("Error: cannot insert fragment.");
                 }
             }
         }
@@ -1633,13 +1646,11 @@ public:
     {
         if (x < 0 || y < 0 || x >= width || y >= height)
         {
-            cout << "Error: incorrect insertion point." << endl;
-            return 0;
+            throw draw_error("Error: incorrect insertion point");
         }
         if (insertion.width + x > width || insertion.height + y > height)
         {
-            cout << "Error: cannot insert such fragment - its out of picture bounds." << endl;
-            return 0;
+            throw draw_error("Error: cannot insert fragment - its out of picture bounds.");
         }
         for (int x_ = 0; x_ < insertion.width; x_++)
         {
@@ -1648,8 +1659,7 @@ public:
                 Pixel ins_pix = insertion.get_pixel(x_, y_);
                 if (!put_pixel(x + x_, y + y_, ins_pix.R, ins_pix.G, ins_pix.B))
                 {
-                    cout << "Error occured while tried to insert fragment." << endl;
-                    return 0;
+                    throw draw_error("Error: cannot insert fragment.");
                 }
             }
         }
@@ -1665,8 +1675,7 @@ public:
                 int mean_color = static_cast<int>((static_cast<double>(curr_pix.R) + static_cast<double>(curr_pix.G) + static_cast<double>(curr_pix.B))/3);
                 if (!put_pixel(x,y, mean_color, mean_color, mean_color))
                 {
-                    cout << "Unexpected error occured while tried to turn picture into black-and-white format." << endl;
-                    return 0;
+                    throw draw_error("Error: failed to change color gamma.");
                 }
             }
         }
@@ -1676,13 +1685,11 @@ public:
     {
         if (x_margin < 0 || y_margin < 0 || (x_margin == 0 && y_margin == 0))
         {
-            cout << "Error: incorrect margin parameters passed." << endl;
-            return 0;
+            throw draw_error("Error: incorrect margin parameters.");
         }
         if (2 * x_margin >= width || 2 * y_margin >= height)
         {
-            cout << "Error: incorrect margin parameters passed." << endl;
-            return 0;
+            throw draw_error("Error: incorrect margin parameters.");
         }
         Canvas result(width - 2*x_margin, height - 2*y_margin);
         for (int x = x_margin; x < width - x_margin; x++)
@@ -1692,8 +1699,7 @@ public:
                 Pixel tmp = get_pixel(x, y);
                 if (!result.put_pixel(x - x_margin, y - y_margin, tmp.R, tmp.G, tmp.B))
                 {
-                    cout << "Error occured while tried to cut canvas." << endl;
-                    return 0;
+                    throw draw_error("Error: cannot cut a fragment.");
                 }
             }
         }
@@ -1724,6 +1730,10 @@ public:
         cout << ">- canvas.draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int R, int G, int B, int R_f, int G_f, int B_f) - " << endl;
         cout << "   - draws a triangle with verticies (x1,y1), (x2,y2), (x3,y3) and border color R,G,B. If passed fill color, trinagle will be filled with " << endl;
         cout << "   R_f, G_f, B_f color ignoring all inner constructions. " << endl;
+        cout << ">- canvas.draw_circle(int x, int y, int Rad, int R, int G, int B, int R_f, int G_f, int B_f) - draws a circle with center " << endl;
+        cout << "   x,y and radius Rad, color = RGB, fill color = R_f, G_f, B_f" << endl;
+        cout << ">- canvas.draw_circle(int x, int y, int Rad, int R, int G, int B, int w, int R_f, int G_f, int B_f) - all the same but you can pass " <<endl;
+        cout << "   a circle width w. " << endl;
         cout << ">- canvas.plot(double* var_values, double* func_values, int sample_count) - draws a plot, where var_values is an array " << endl;
         cout << "   with variable values and func_values is an array with corresponding function values. Sample_count is number of dots ( = length of arrays). " << endl;
         cout << ">- canvas.scatterplot(double* var_values, double* func_values, int sample_counts) - works the same way as canvas.plot, draws a scatter plot " << endl;
@@ -1732,7 +1742,6 @@ public:
         cout << ">- canvas.insert_fragment(int x, int y, Canvas fragment) - inserts a fragment in current canvas, x,y is upper left point of fragment start" << endl;
         cout << ">- canvas.insert_fragment(int x, int y, string filename) - -//-, but fragment is taken from file `filename`. " << endl;
     }
-
 };
 
-#endif //CANVAS
+#endif // CANVAS
